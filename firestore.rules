@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Path Variable Hardening (ID Poisoning Guard)
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprint (The "Anti-Update-Gap")
+    function isValidDiary(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+             data.content is string && data.content.size() <= 10000 &&
+             data.createdAt is string && data.createdAt.size() <= 128 &&
+             (!('reflection_answer' in data) || (data.reflection_answer is string && data.reflection_answer.size() <= 5000)) &&
+             (!('responseMode' in data) || (data.responseMode is string && (data.responseMode == 'empathy' || data.responseMode == 'mentor'))) &&
+             (!('date' in data) || (data.date is string && data.date.size() <= 128)) &&
+             (!('time' in data) || (data.time is string && data.time.size() <= 128)) &&
+             (!('analysis' in data) || (data.analysis is map));
+    }
+
+    match /diaries/{diaryId} {
+      // Secure List Queries: Verify owner on resource.data to prevent unauthorized query scraping
+      allow list: if isVerified() && resource.data.userId == request.auth.uid;
+      
+      // Secure Single Document Reads
+      allow get: if isVerified() && isValidId(diaryId) && resource.data.userId == request.auth.uid;
+      
+      // Secure Deletes
+      allow delete: if isVerified() && isValidId(diaryId) && resource.data.userId == request.auth.uid;
+      
+      // Secure Creates: Validate exact fields to prevent shadow fields
+      allow create: if isVerified() &&
+                       isValidId(diaryId) &&
+                       incoming().id == diaryId &&
+                       isValidDiary(incoming()) &&
+                       incoming().keys().hasAll(['id', 'userId', 'content', 'createdAt']) &&
+                       incoming().keys().size() <= 9; // up to 9 valid keys
+
+      // Secure Updates: Strict key immutability and named Actions
+      allow update: if isVerified() &&
+                       isValidId(diaryId) &&
+                       isValidDiary(incoming()) &&
+                       incoming().id == existing().id &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Save reflection answer only
+                         incoming().diff(existing()).affectedKeys().hasOnly(['reflection_answer']) ||
+                         // Action 2: Update full diary/analysis attributes during cloud sync
+                         incoming().diff(existing()).affectedKeys().hasOnly(['content', 'analysis', 'responseMode', 'date', 'time', 'reflection_answer'])
+                       );
+    }
+  }
+}

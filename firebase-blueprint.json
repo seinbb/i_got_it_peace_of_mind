@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "diary": {
+      "title": "DiaryEntry",
+      "description": "A teenage mental health diary entry analyzed by AI.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique document/entry ID based on timestamp."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Auth user ID of the author."
+        },
+        "date": {
+          "type": "string",
+          "description": "Formatted date string (e.g. 2026년 7월 16일 (목))."
+        },
+        "time": {
+          "type": "string",
+          "description": "Formatted time string (e.g. 오후 7:56)."
+        },
+        "content": {
+          "type": "string",
+          "description": "The journal text written by the teenager.",
+          "maxLength": 10000
+        },
+        "analysis": {
+          "type": "object",
+          "description": "The AI analysis response including emotions, empathy message, recommended content, and reflection question."
+        },
+        "reflection_answer": {
+          "type": "string",
+          "description": "The teenager's voluntary response to the AI's reflection question.",
+          "maxLength": 5000
+        },
+        "responseMode": {
+          "type": "string",
+          "description": "The selected emotional support mode: empathy or mentor.",
+          "enum": ["empathy", "mentor"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The ISO 8601 timestamp representing when the entry was synced."
+        }
+      },
+      "required": ["id", "userId", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/diaries/{diaryId}": {
+      "schema": "diary",
+      "description": "A collection of user-authored mental health diary entries."
+    }
+  }
+}

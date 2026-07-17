@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: Maum-swim",
+  "description": "A warm AI diary for teenagers that visualizes emotional health and provides comforting messages to soothe daily stress.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
