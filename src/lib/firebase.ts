@@ -1,24 +1,21 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer } from "firebase/firestore";
-import firebaseConfigFromJson from "../../firebase-applet-config.json";
-
 // Supports overriding with Vite environment variables (VITE_ prefixed) for hosting platforms like Vercel,
 // while gracefully falling back to the local json configuration in AI Studio development.
 const firebaseConfig = {
-  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || firebaseConfigFromJson.apiKey,
-  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigFromJson.authDomain,
-  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || firebaseConfigFromJson.projectId,
-  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigFromJson.storageBucket,
-  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigFromJson.messagingSenderId,
-  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || firebaseConfigFromJson.appId,
-  measurementId: (import.meta as any).env.VITE_FIREBASE_MEASUREMENT_ID || firebaseConfigFromJson.measurementId,
-  firestoreDatabaseId: (import.meta as any).env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || firebaseConfigFromJson.firestoreDatabaseId,
+  apiKey: "AIzaSyDgYqPUo-zem3lBzWilVVSLnJ9_P36Q-mQ",
+  authDomain: "peace-of-mind-428c0.firebaseapp.com",
+  projectId: "peace-of-mind-428c0",
+  storageBucket: "peace-of-mind-428c0.firebasestorage.app",
+  messagingSenderId: "1023765064233",
+  appId: "1:1023765064233:web:245d924d8032065f018a38",
+  measurementId: "G-VC2RPTYV80",
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); /* CRITICAL: The app will break without this line */
+const db = getFirestore(app, "ai-studio-remixremixmaumsw-f29da5bf-43f4-46c8-a37f-c1cb74a3df46"); /* CRITICAL: The app will break without this line */
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
