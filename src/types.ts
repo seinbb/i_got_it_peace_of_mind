@@ -30,6 +30,8 @@ export interface DiaryEntry {
   analysis: AnalysisResponse;
   reflection_answer?: string;
   responseMode?: "empathy" | "mentor";
+  createdAt?: string;
+  userId?: string;
 }
 
 export interface WritingPrompt {

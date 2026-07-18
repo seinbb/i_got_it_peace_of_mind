@@ -39,7 +39,8 @@ import {
   orderBy,
   deleteDoc,
   handleFirestoreError,
-  OperationType
+  OperationType,
+  where
 } from "./lib/firebase";
 
 // Helper to format dates beautifully in Korean
@@ -114,48 +115,94 @@ export default function App() {
   // Auth Listener and Firestore Data Fetching
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
       if (currentUser) {
         setIsSyncing(true);
         try {
+          // 1. Migrate local storage diaries to Firestore upon login
+          const localSaved = localStorage.getItem("maum_swim_entries");
+          if (localSaved) {
+            try {
+              const localDiaries = JSON.parse(localSaved) as DiaryEntry[];
+              if (Array.isArray(localDiaries) && localDiaries.length > 0) {
+                for (const entry of localDiaries) {
+                  const entryRef = doc(db, "diaries", entry.id);
+                  const createdAtIso = isNaN(Number(entry.id))
+                    ? (entry.createdAt || new Date().toISOString())
+                    : new Date(Number(entry.id)).toISOString();
+                  
+                  await setDoc(
+                    entryRef,
+                    {
+                      ...entry,
+                      userId: currentUser.uid,
+                      createdAt: createdAtIso
+                    },
+                    { merge: true }
+                  );
+                }
+                localStorage.removeItem("maum_swim_entries");
+              }
+            } catch (err) {
+              console.error("Failed to migrate local diaries on login:", err);
+            }
+          }
+
+          // 2. Fetch user's diaries from Firestore using secure filter
           const path = "diaries";
-          const q = query(collection(db, path), orderBy("createdAt", "desc"));
+          const q = query(collection(db, path), where("userId", "==", currentUser.uid));
           let querySnapshot;
           try {
             querySnapshot = await getDocs(q);
           } catch (e) {
             handleFirestoreError(e, OperationType.LIST, path);
+            setUser(currentUser);
             return;
           }
           const userDiaries: DiaryEntry[] = [];
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.userId === currentUser.uid) {
-              userDiaries.push(data as DiaryEntry);
-            }
+          querySnapshot.forEach((docSnap) => {
+            userDiaries.push(docSnap.data() as DiaryEntry);
           });
+          
+          // Sort chronologically in reverse (newest first)
+          userDiaries.sort((a, b) => b.id.localeCompare(a.id));
+
           setEntries(userDiaries);
           if (userDiaries.length > 0) {
             setSelectedEntry(userDiaries[0]);
             if (userDiaries[0].responseMode) {
               setResponseMode(userDiaries[0].responseMode);
             }
+          } else {
+            setSelectedEntry(null);
           }
+
+          // 3. Finally set user state to update the UI
+          setUser(currentUser);
         } catch (error) {
           console.error("Error fetching diaries", error);
+          setUser(currentUser);
         } finally {
           setIsSyncing(false);
         }
       } else {
+        setUser(null);
         const savedEntries = localStorage.getItem("maum_swim_entries");
         if (savedEntries) {
-          const parsed = JSON.parse(savedEntries) as DiaryEntry[];
-          setEntries(parsed);
-          if (parsed.length > 0) {
-            setSelectedEntry(parsed[0]);
-            if (parsed[0].responseMode) {
-              setResponseMode(parsed[0].responseMode);
+          try {
+            const parsed = JSON.parse(savedEntries) as DiaryEntry[];
+            setEntries(parsed);
+            if (parsed.length > 0) {
+              setSelectedEntry(parsed[0]);
+              if (parsed[0].responseMode) {
+                setResponseMode(parsed[0].responseMode);
+              }
+            } else {
+              setSelectedEntry(null);
             }
+          } catch (e) {
+            console.error("Error parsing saved entries on logout:", e);
+            setEntries([]);
+            setSelectedEntry(null);
           }
         } else {
           setEntries([]);

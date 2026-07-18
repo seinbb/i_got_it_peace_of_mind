@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer } from "firebase/firestore";
+import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, where } from "firebase/firestore";
 // Supports overriding with Vite environment variables (VITE_ prefixed) for hosting platforms like Vercel,
 // while gracefully falling back to the local json configuration in AI Studio development.
 const firebaseConfig = {
@@ -68,6 +68,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-export { app, auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged, collection, doc, setDoc, getDocs, query, orderBy, deleteDoc };
+export { app, auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged, collection, doc, setDoc, getDocs, query, orderBy, deleteDoc, where };
 export type { User };
 
