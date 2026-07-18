@@ -75,6 +75,28 @@ const getFallbackKey = (): string => {
   }
 };
 
+// Helper to sanitize entry for Firestore (avoid undefined fields and exceed strict schema validation)
+const sanitizeDiaryEntry = (entry: DiaryEntry, userId: string): any => {
+  const createdAtIso = isNaN(Number(entry.id))
+    ? (entry.createdAt || new Date().toISOString())
+    : new Date(Number(entry.id)).toISOString();
+
+  const clean: any = {
+    id: entry.id,
+    userId: userId,
+    content: entry.content || "",
+    createdAt: createdAtIso
+  };
+
+  if (entry.date !== undefined && entry.date !== null) clean.date = entry.date;
+  if (entry.time !== undefined && entry.time !== null) clean.time = entry.time;
+  if (entry.analysis !== undefined && entry.analysis !== null) clean.analysis = entry.analysis;
+  if (entry.reflection_answer !== undefined && entry.reflection_answer !== null) clean.reflection_answer = entry.reflection_answer;
+  if (entry.responseMode !== undefined && entry.responseMode !== null) clean.responseMode = entry.responseMode;
+
+  return clean;
+};
+
 export default function App() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
@@ -120,25 +142,17 @@ export default function App() {
         try {
           // 1. Migrate local storage diaries to Firestore upon login
           const localSaved = localStorage.getItem("maum_swim_entries");
+          let migratedEntries: DiaryEntry[] = [];
+
           if (localSaved) {
             try {
               const localDiaries = JSON.parse(localSaved) as DiaryEntry[];
               if (Array.isArray(localDiaries) && localDiaries.length > 0) {
                 for (const entry of localDiaries) {
                   const entryRef = doc(db, "diaries", entry.id);
-                  const createdAtIso = isNaN(Number(entry.id))
-                    ? (entry.createdAt || new Date().toISOString())
-                    : new Date(Number(entry.id)).toISOString();
-                  
-                  await setDoc(
-                    entryRef,
-                    {
-                      ...entry,
-                      userId: currentUser.uid,
-                      createdAt: createdAtIso
-                    },
-                    { merge: true }
-                  );
+                  const sanitized = sanitizeDiaryEntry(entry, currentUser.uid);
+                  await setDoc(entryRef, sanitized, { merge: true });
+                  migratedEntries.push(sanitized as DiaryEntry);
                 }
                 localStorage.removeItem("maum_swim_entries");
               }
@@ -162,6 +176,15 @@ export default function App() {
           querySnapshot.forEach((docSnap) => {
             userDiaries.push(docSnap.data() as DiaryEntry);
           });
+
+          // Merge newly migrated entries in memory to prevent any query synchronization latency / timing gaps
+          const existingIds = new Set(userDiaries.map((d) => d.id));
+          for (const entry of migratedEntries) {
+            if (!existingIds.has(entry.id)) {
+              userDiaries.push(entry);
+              existingIds.add(entry.id);
+            }
+          }
           
           // Sort chronologically in reverse (newest first)
           userDiaries.sort((a, b) => b.id.localeCompare(a.id));
@@ -275,11 +298,8 @@ export default function App() {
     const path = `diaries/${entry.id}`;
     try {
       const entryRef = doc(db, "diaries", entry.id);
-      await setDoc(
-        entryRef,
-        { ...entry, userId: user.uid, createdAt: new Date(Number(entry.id)).toISOString() },
-        { merge: true }
-      );
+      const sanitized = sanitizeDiaryEntry(entry, user.uid);
+      await setDoc(entryRef, sanitized, { merge: true });
     } catch (e) {
       console.error("Failed to sync to cloud", e);
       handleFirestoreError(e, OperationType.WRITE, path);
