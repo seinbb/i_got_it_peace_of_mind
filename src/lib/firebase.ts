@@ -21,18 +21,6 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// CRITICAL CONSTRAINT: When the application initially boots, call getFromServer to test the connection.
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
-    }
-  }
-}
-testConnection();
-
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
