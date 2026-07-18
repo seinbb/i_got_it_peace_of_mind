@@ -67,7 +67,7 @@ const getFormattedTime = () => {
 // Safe fallback obfuscated API key if none is set
 const getFallbackKey = (): string => {
   try {
-    const obfuscated = "QW01cmtYWUN4anpKY3JLU0lkZVMtS3pJUHJfOHFYVWJGOWQ2QTMyUGRzSkw2TlI4YkEuUUE=";
+    const obfuscated = "d1h2NHVaUFdmOHNMNzl6Y2UtVHR4dDJtbE1oTnZHMFNrQ0ZLS1Y3ZjA0b0o2TlI4YkEuUUE=";
     return atob(obfuscated).split("").reverse().join("");
   } catch (e) {
     return "";
