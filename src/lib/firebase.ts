@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app, "ai-studio-remixremixmaumsw-f29da5bf-43f4-46c8-a37f-c1cb74a3df46"); /* CRITICAL: The app will break without this line */
+const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
